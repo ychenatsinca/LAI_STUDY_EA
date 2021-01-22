@@ -12,16 +12,13 @@
 #              "w_0_p_80_2D", "w_5_p_80_3D",
 #              "w_0_p_100_4D","w_5_p_320_5D")
 
-legend.txt <- c("2D: 6m/s,80mm", "3D: 8m/s,160mm", 
-                "2D: 6m/s",      "3D: 8m/s",
-                "2D: 80mm",      "3D: 160 mm") 
+legend.txt <- rev(c("2D:8m/s,60mm",  "2D:60mm",  "2D:8m/s",
+                    "3D:10m/s,80mm", "3D:80mm",  "3D:10m/s",
+                    "4D:12m/s,100mm","4D:100mm", "4D:12m/s"))
+#                    "5D:14m/s,120mm","5D:120mm", "5D:14m/s") )
 
-sub_dir  <- c("./Rda_test/")
+sub_dir  <- c("./Rda_50/")
 #
-#run_date <- c("EA_19990220to20181231_table.comb")
-
-#
-
 #run_case <- c("w_6_p_80_2D_pos_050_off_000_cut_0", "w_8_p_160_3D_pos_050_off_000_cut_0",
 #              "w_6_p_0_2D_pos_050_off_000_cut_0",  "w_8_p_0_3D_pos_050_off_000_cut_0",
 #              "w_8_p_80_2D_pos_050_off_000_cut_0", "w_10_p_240_4D_pos_050_off_000_cut_0")
@@ -29,14 +26,39 @@ sub_dir  <- c("./Rda_test/")
 # run_col <- c(rep("red",4),rep("cyan",4),rep("blue",4))
 # run_lty <- c(seq(1,4,1),seq(1,4,1),seq(1,4,1))
 #}
-run_case <- list.files(path=sub_dir, pattern="*.rda")
-run_col <- c(rep("red",2),rep("blue",2),rep("cyan",2))
-run_lty <- c(seq(1,2,1), seq(1,2,1), seq(1,2,1)) 
+run_case <- rev(c("EA_19990220to20181231_table.combw_8_p_60_2D_pos_050_off_000_cut_0.rda",
+              "EA_19990220to20181231_table.combw_0_p_60_2D_pos_050_off_000_cut_0.rda",
+              "EA_19990220to20181231_table.combw_8_p_0_2D_pos_050_off_000_cut_0.rda",
+              "EA_19990220to20181231_table.combw_10_p_80_3D_pos_050_off_000_cut_0.rda",
+              "EA_19990220to20181231_table.combw_0_p_80_3D_pos_050_off_000_cut_0.rda",
+              "EA_19990220to20181231_table.combw_10_p_0_3D_pos_050_off_000_cut_0.rda",
+              "EA_19990220to20181231_table.combw_12_p_100_4D_pos_050_off_000_cut_0.rda",
+              "EA_19990220to20181231_table.combw_0_p_100_4D_pos_050_off_000_cut_0.rda",
+              "EA_19990220to20181231_table.combw_12_p_0_4D_pos_050_off_000_cut_0.rda"))
+#              "EA_19990220to20181231_table.combw_14_p_120_5D_pos_050_off_000_cut_0.rda"
+#              "EA_19990220to20181231_table.combw_0_p_120_5D_pos_050_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_14_p_0_5D_pos_050_off_000_cut_0.rda"))
+ 
+# run_case <- rev(c("EA_19990220to20181231_table.combw_6_p_40_1D_pos_050_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_0_p_40_1D_pos_050_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_6_p_0_1D_pos_050_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_8_p_60_2D_pos_040_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_0_p_60_2D_pos_040_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_8_p_0_2D_pos_040_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_10_p_80_3D_pos_040_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_0_p_80_3D_pos_040_off_000_cut_0.rda",
+#              "EA_19990220to20181231_table.combw_10_p_0_3D_pos_040_off_000_cut_0.rda"))
+#
+#run_col <- rev(c(rep("black",3),rep("gray50",3)) #,rep("gray70",3),rep("gray90",3)))
+run_col <- rev(c(rep("black",3),rep("blue",3),rep("forestgreen",3) ))
+
+
+run_lty <- rev(c(rep(c(1,5,3),3))) 
  
 #0QC1 mean difference  on LAI
 #QC2 measurement uncertainty on LAI  
-qc1.set <- 1.0
-qc2.set <- 0.2
+qc1.set <- 0.75
+qc2.set <- 0.25
 area.set <- 00
 ####################################################################################
 fun_table.qc <- function(wrk.table, qc1.set=0.5, qc2.set=0.2, area.set=1000) {
@@ -57,10 +79,10 @@ fun_table.qc <- function(wrk.table, qc1.set=0.5, qc2.set=0.2, area.set=1000) {
  x_del=0.0
  #load the first case 
  ylim=c(0,30)
- xlim=c(-1.3,1.3)
+ xlim=c(-2.,2.)
    
  plot(x=0,  y=0,
-      type="l", col="red",xlim=xlim,ylim=ylim,
+      type="l", col="white",xlim=xlim,ylim=ylim,
       xlab="Effect size (ES)",ylab="Count estimate")
  #add zero line 
  abline(v=0, col="lightgray",lty="dashed")
@@ -84,9 +106,9 @@ fun_table.qc <- function(wrk.table, qc1.set=0.5, qc2.set=0.2, area.set=1000) {
 
 #add legend 
 grid(col="gray",lwd=1.5)
-legend("topright", inset=.05, bg="white",
-       title="Search Area", 
+legend("topleft", inset=.05, bg="white",bty="n",
+       title="", 
        legend= legend.txt,
  #      legend= run_case,
-       col=run_col, 
+       col=run_col,lwd=1.5, 
        lty=run_lty,cex=1.0)

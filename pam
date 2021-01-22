@@ -1,0 +1,39 @@
+flip                  package:raster                   R Documentation
+
+_F_l_i_p
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     Flip the values of a Raster* object by inverting the order of the
+     rows (direction=y) or the columns direction='x'.
+
+_U_s_a_g_e:
+
+     flip(x, direction, ...)
+     
+_A_r_g_u_m_e_n_t_s:
+
+       x: Raster* object
+
+direction: Character. 'y' or 'x'; or 1 (=x) or 2 (=y)
+
+     ...: Additional arguments as for ‘writeRaster’
+
+_V_a_l_u_e:
+
+     RasterLayer or RasterBrick
+
+_S_e_e _A_l_s_o:
+
+     transpose: ‘t’, ‘rotate’
+
+_E_x_a_m_p_l_e_s:
+
+     r <- raster(nrow=18, ncol=36)
+     m <- matrix(1:ncell(r), nrow=18)
+     r[] <- as.vector(t(m))
+     rx <- flip(r, direction='x')
+     r[] <- as.vector(m)
+     ry <- flip(r, direction='y')
+     
+

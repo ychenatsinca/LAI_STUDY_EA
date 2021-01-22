@@ -1,0 +1,2 @@
+cd /work/ychen/scripts/R/Rscripts/LAI_STUDY_EA/
+Rscript lai_change_analysis.R 10 80 50 0 70 TRACK_DATA_3D > w_10_p_80_window_50_offset_0_pos_70_track_TRACK_DATA_3D.log &  

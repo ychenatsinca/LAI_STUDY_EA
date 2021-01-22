@@ -13,8 +13,8 @@
 # Revised Date: 2020-10-20 revised the simulation doamin to East Asia (0 to 60N, 90E,150E) 
 # -----------------------------------------------------------------
 
-fun.dyn.lai <- function ( Ref.wind=3.0, Ref.rain=100, win.size=40, offdays=30, pdays=60, track.dir="TRACK_DATA_TS_125D")
-{
+#fun.dyn.lai <- function ( Ref.wind=3.0, Ref.rain=100, win.size=40, offdays=30, pdays=60, track.dir="TRACK_DATA_TS_125D")
+#{
 
 # ====================================
 # data for analysis from 1999 to 2018 
@@ -23,14 +23,19 @@ fun.dyn.lai <- function ( Ref.wind=3.0, Ref.rain=100, win.size=40, offdays=30, p
 target=c("EA");
 Del.wind=0; Del.rain=0; 
 #it1=5;it2=36*(20); #it2=36*20;
+
 it1=5; it2=36*20
-#track.dir="/TRACK_DATA_TS_125D/";
+
+#it1=22; it2=22
+
+track.dir="/TRACK_DATA_2D/";
 wrk.dir="/lfs/home/ychen/LAI_STUDY_EAsia/";
 mon.str=1; mon.end=12;
 
+
 #pdays: post TC-event days  
 #offdays: offset days LAI observation  
-test_ld <- FALSE
+test_ld <- TRUE
 
 if (test_ld) {
   # set working files directory  
@@ -47,9 +52,11 @@ if (test_ld) {
   #Sulik it=528
   Ref.wind = 0
   Ref.rain = 200
+  target=c("TEST"); it1=22; it2=22; mon.str=1;mon.end=12   #zero wind speed
+  
   #target ="TEST"
   #target=c("TW"); it1=528; it2=528; mon.str=1;mon.end=12  #Sulik
-  target=c("TW"); it1=382; it2=382; mon.str=1;mon.end=12   #Morakot
+  #target=c("TW"); it1=382; it2=382; mon.str=1;mon.end=12   #Morakot
   # target=c("TW"); it1=274; it2=274; mon.str=1;mon.end=12
   #target=c("TW"); it1=275; it2=275; mon.str=1;mon.end=12
   #target=c("EA"); it1=5; it2=150; mon.str=1;mon.end=12
@@ -1028,7 +1035,7 @@ if (ld_go) {
 
   return(table.comb)
 
-} # end of fun_dyn_lai
+#} # end of fun_dyn_lai
 
 #========== Set the script to Auto RUN=========================== 
 # Start convert the file by fun_compress with specific argunment
@@ -1036,9 +1043,9 @@ if (ld_go) {
 # following lines, which allowed this R-script can be called under the shell script
 # with the arggunmets sending by specific batch jobs  
 #
-args<-commandArgs(TRUE)
-print(args)
-fun.dyn.lai(args[1], args[2], args[3], args[4], args[5], args[6]) 
+#args<-commandArgs(TRUE)
+#print(args)
+#fun.dyn.lai(args[1], args[2], args[3], args[4], args[5], args[6]) 
 #
 #========== End ================================================
 

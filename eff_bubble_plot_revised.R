@@ -1,4 +1,4 @@
-go.pdf <- F
+go.pdf <- T
 #copy default par()
 par.def <- par()      
 
@@ -50,6 +50,10 @@ load("../TC_tack_mask/tc.occ.1999to2018.rda")
 #only accounted the tc affected area 
 lc.for.mask[arr.for.plot<=0.1] <- NA 
 
+tc.occ <- arr.for.plot
+tc.occ[tc.occ==0] <- NA
+tc.occ[lc.for.mask !=1] <- NA   
+
 # variable name: esa.lc
 # group the types to croplands(type 1), forests(type 2), others(type 3)
 # see http://http://maps.elie.ucl.ac.be/CCI/viewer/download/ESACCI-LC-Ph2-PUGv2_2.0.pdf   # Page-30
@@ -65,8 +69,7 @@ ny=6722
 
 eff.acc.pos <- array( 0, dim=c( nx,ny) )  
 eff.acc.neg <- array( 0, dim=c( nx,ny) )  
-
-
+eff.acc.neu <- array( 0, dim=c( nx,ny) )  
 #nav.lat <- array(NA,dim=c(nx,ny)) 
 #nav.lon <- array(NA,dim=c(nx,ny)) 
     
@@ -77,7 +80,6 @@ lai.1 <- fun_read_nc( arg1="/lfs/home/ychen/LAI_STUDY_EAsia/LAI_DATA/c_gls_LAI_2
 #         nav.lon[ix,iy] <- lai.1$lon[ix] 
 #      }
 #}
-
 
 #load the coastlines data by readOGR function from sp package
 coastlines <- readOGR("/lfs/home/ychen/GIS/Coastline/ne_10m_coastline/ne_10m_coastline.shp")
@@ -141,6 +143,9 @@ for.navlat.10d <- array( 0, dim=c( nx10d,ny10d) )
 #array for accounting for positive or negtive effect size over 10 by 10 degree
 eff.acc.10d.pos <- array( 0, dim=c( nx10d,ny10d) )  
 eff.acc.10d.neg <- array( 0, dim=c( nx10d,ny10d) )  
+eff.acc.10d.neu <- array( 0, dim=c( nx10d,ny10d) )  
+
+tc.occ.10d.avg <- array( 0, dim=c( nx10d,ny10d) )
 
 # find forest pixel for each grid for 10 by 10 degree
 
@@ -157,7 +162,8 @@ for (ix in nx10d:1) {
         for.navlon.10d[ix,iy] <- cn.lon 
         for.navlat.10d[ix,iy] <- cn.lat 
         for.acc.10d[ix,iy] <-  sum(lc.for.mask[id.x.10d,id.y.10d],na.rm=T)
-    } # 
+   } # 
+
 } #  
 for.acc.10d <- t(for.acc.10d[nx10d:1,ny10d:1])
 
@@ -171,12 +177,12 @@ load(paste(table.dir,"/",wrk.rda, sep=""))
 
 #QC1 mean difference  on LAI
 #QC2 measurement uncertainty on LAI  
-qc1.set <- 1.0
-qc2.set <- 0.25
+qc1.set <- 0.6
+qc2.set <- 0.2
 area.set <- 0
 
-fun_table.qc <- function(wrk.table, qc1.set=0.5, qc2.set=0.2, area.set=1000) {
- 
+fun_table.qc <- function(wrk.table, qc1.set=0.6, qc2.set=0.2, area.set=0) {
+     
       #subset the datset with QC and QA score
       #Avariable area
       wrk.table <- subset(wrk.table, ((wrk.table$eve.for.pix.aff)> area.set)  )
@@ -186,11 +192,31 @@ fun_table.qc <- function(wrk.table, qc1.set=0.5, qc2.set=0.2, area.set=1000) {
       #qc2.set <- 0.2
       wrk.table <- subset(wrk.table, (abs(wrk.table$qc1.score)<=qc1.set &  abs(wrk.table$qc2.score)>=qc2.set ))
       return(wrk.table)
-      } 
+      }
+
+get_table.qc1 <- function(wrk.table, qc1.set=0.6, qc2.set=0.2,area.set=0) {
+      #get big difference
+      wrk.table <- subset(wrk.table, ((wrk.table$eve.for.pix.aff)> area.set)  )
+      wrk.table <- subset(wrk.table, ( abs(wrk.table$qc1.score)>qc1.set)  )
+      return(wrk.table)  
+}
+
+get_table.qc2 <- function(wrk.table, qc1.set=0.6, qc2.set=0.2, area.set=0) {
+      #get neutral event
+      wrk.table <- subset(wrk.table, ((wrk.table$eve.for.pix.aff)> area.set)  )
+      wrk.table <- subset(wrk.table, ((abs(wrk.table$qc2.score)<qc2.set) & (abs(wrk.table$qc1.score)<qc1.set) ))
+      return(wrk.table)  
+}
+
+#get table neutral table  
+table.neutral <- get_table.qc2( wrk.table=table.comb, qc1.set=qc1.set, qc2.set=qc2.set, area.set=area.set)
+
+#gwt table for big LAI difference 
+table.bigdiff <- get_table.qc1( wrk.table=table.comb, qc1.set=qc1.set, qc2.set=qc2.set, area.set=area.set)
+
 
 #table quality check
 table.comb <- fun_table.qc(wrk.table=table.comb, qc1.set=qc1.set, qc2.set=qc2.set, area.set=area.set) 
-
 
 # Generate a figure print plot with x-axis: months; y-axis: latitude
 # define array 
@@ -239,8 +265,8 @@ library("rgdal")
 #my.col    <- colorRampPalette(c("darkblue","blue","cyan","lightgray","yellow","pink","red","brown","brown"))(25)
 #eff.col    <- colorRampPalette(c("darkblue","blue","cyan","white","pink","red","brown"))(16)
 #eff.col    <- colorRampPalette(c("forestgreen","green","lightgreen","white","gray","orange","brown"))(16)
-eff.col    <- rev(colorRampPalette(c("forestgreen","green","lightgreen","white","pink","red","brown"))(20) ) 
-#eff.col    <- colorRampPalette(c("orange4","orange2","white","forestgreen","darkgreen"))(20)
+#eff.col    <- rev(colorRampPalette(c("forestgreen","green","lightgreen","white","pink","red","brown"))(20) ) 
+eff.col    <- colorRampPalette(c("orange4","orange2","lightgray","green","forestgreen"))(20)
 eff.breaks <- c( seq(-1., 1., length.out = 19))
 eff.breaks <- round(eff.breaks,2)
 
@@ -280,7 +306,7 @@ for (ieve in 1:length(table.comb$RAD) ) {
      #allocate array
      tmp.arr <- array(0,dim=c(nx,ny))
      #for positive event
-     if (table.comb$eff.size.for[ieve] > 0.) {
+     if (table.comb$eff.size.for[ieve] > 0.2) {
         #find pixel for the events
         x.id <- which(  (lai.1$lon <= (table.comb$eve.lon.med.aff[ieve]+eff_cex[ieve])) &
                         (lai.1$lon >= (table.comb$eve.lon.med.aff[ieve]-eff_cex[ieve]))  ) 
@@ -290,8 +316,9 @@ for (ieve in 1:length(table.comb$RAD) ) {
         tmp.arr[c(x.id),c(y.id)] <- 1    
         eff.acc.pos <- tmp.arr + eff.acc.pos
      }#end if
+      tmp.arr <- array(0,dim=c(nx,ny))
      #for negtive event 
-     if (table.comb$eff.size.for[ieve] < 0.) {
+     if (table.comb$eff.size.for[ieve] < 0.2) {
         x.id <- which(  (lai.1$lon <= (table.comb$eve.lon.med.aff[ieve]+eff_cex[ieve])) &
                         (lai.1$lon >= (table.comb$eve.lon.med.aff[ieve]-eff_cex[ieve]))  ) 
  
@@ -302,7 +329,36 @@ for (ieve in 1:length(table.comb$RAD) ) {
  
      }#end if
 
+     #for neutral event abs(ES) <=0.2 
+     if ( abs(table.comb$eff.size.for[ieve]) <= 0.2) {
+        x.id <- which(  (lai.1$lon <= (table.comb$eve.lon.med.aff[ieve]+eff_cex[ieve])) &
+                        (lai.1$lon >= (table.comb$eve.lon.med.aff[ieve]-eff_cex[ieve]))  ) 
+ 
+        y.id <- which(  (lai.1$lat <= (table.comb$eve.lat.med.aff[ieve]+eff_cex[ieve])) &
+                        (lai.1$lat >= (table.comb$eve.lat.med.aff[ieve]-eff_cex[ieve]))  ) 
+        tmp.arr[c(x.id),c(y.id)] <- 1    
+        eff.acc.neu <- tmp.arr + eff.acc.neu
+ 
+     }#end if
+
+
 }#end for
+
+#work on neutral table by adding the event didn't pass the flag-2
+#----> table.neutral <------ 
+for (ieve in 1:length(table.neutral$eff.size.for) ) {
+
+        tmp.arr <- array(0,dim=c(nx,ny))
+         #for neutral event 
+        x.id <- which(  (lai.1$lon <= (table.neutral$eve.lon.med.aff[ieve]+eff_cex[ieve])) &
+                        (lai.1$lon >= (table.neutral$eve.lon.med.aff[ieve]-eff_cex[ieve]))  ) 
+ 
+        y.id <- which(  (lai.1$lat <= (table.neutral$eve.lat.med.aff[ieve]+eff_cex[ieve])) &
+                        (lai.1$lat >= (table.neutral$eve.lat.med.aff[ieve]-eff_cex[ieve]))  ) 
+        tmp.arr[c(x.id),c(y.id)] <- 1    
+        eff.acc.neu <- tmp.arr + eff.acc.neu
+
+}
 
 
 # aggregate to 10 degree by 10 degree
@@ -320,15 +376,15 @@ for (ix in 1:nx10d) {
     #aggregate by sum 
     eff.acc.10d.neg[ix,iy] <- sum(eff.acc.neg[c(x.id),c(y.id)],na.rm=T) 
     eff.acc.10d.pos[ix,iy] <- sum(eff.acc.pos[c(x.id),c(y.id)],na.rm=T) 
+    eff.acc.10d.neu[ix,iy] <- sum(eff.acc.neu[c(x.id),c(y.id)],na.rm=T) 
+    #count average tc occurence at 10 by 10 
+    tc.occ.10d.avg[ix,iy] <- mean( tc.occ[c(x.id), c(y.id)],na.rm=T)
    }#end for
 }#end for 
 
 #eff.acc.10d.neg <- t(eff.acc.10d.neg[nx10d:1,ny10d:1])
 #eff.acc.10d.pos <- t(eff.acc.10d.pos[nx10d:1,ny10d:1])
-
-
-
-
+#eff.acc.10d.neu <- t(eff.acc.10d.neu[nx10d:1,ny10d:1])
 #
 #points(x=x_pos , y=y_pos, col=table.comb$col, bg="NA",  cex=my_cex, pch=21)
 #mtext(text=c(paste(mon.txt[1:12])), side=1, line=-1.5, at=seq(1,24,2)+0.5, las=2, cex=0.8)
@@ -377,6 +433,8 @@ par(mar = c(0, 4, 3, 0))
  
 
    allrun.table <- NA
+   flag1.table <- NA
+   flag2.table <- NA
    #get file-list 
    in.files <- list.files(path=table.dir, pattern="EA_*")
    in.files[1] <- in.files[7]
@@ -394,11 +452,19 @@ par(mar = c(0, 4, 3, 0))
    #text(x=sm.ln$x[1], y=sm.ln$y[1],id)
    # combine all data to a table 
    allrun.table <- rbind(table.comb,allrun.table)
- }
+   flag1.table <- rbind(table.neutral,flag1.table)
+   flag2.table <- rbind(table.bigdiff,flag2.table)
+   }
+
    
-   #add  all dataset avaerage information 
+   
+   #add all dataset avaerage information 
    allrun.table <- allrun.table[complete.cases(allrun.table), ]  
+   flag1.table <- flag1.table[complete.cases(flag1.table), ]  
+   flag2.table <- flag2.table[complete.cases(flag2.table), ]  
  
+
+
    sm.ln <- smooth.spline(y=allrun.table$eff.size.for,x=allrun.table$date.mon, df=10) 
    lines(x=sm.ln$x, y=sm.ln$y, col = "black",lwd=2)
    #grid(col="gray")
@@ -453,8 +519,8 @@ if(go.pdf){dev.off()}
 ld.go <- TRUE
 if (ld.go) {
 #open new device
-go.pdf=T
-if(go.pdf) {pdf(file="eff_plot_sub_a.pdf",width=8, height=8) } else{dev.new() }
+go.pdf = TRUE
+if(go.pdf) {pdf(file="Fig2.pdf",width=8, height=8) } else{ print("go x-windows") }
 #reset plot parameters
 #par(mar = c(0, 0, 0, 0), mgp=c(3,1,0),xpd=FALSE)
 par(mar = c(4, 4, 1, 2) , mgp=c(3,1,0))
@@ -479,7 +545,7 @@ load("/lfs/home/ychen/LAI_STUDY_EAsia/LANDCOVER_DATA/2015.esa.landcover.east.asi
  x.lab   <- c(0, 40,90,120,180,190,200,210,230,250)
 txt.lab  <- c("No-Obs","Agr-all","For-all","Grass","Bare","Urban","Water","Sea")
 #lc.col  <- c("gray","yellow","forestgreen","darkolivegreen","orange","brown","orange","white")
-lc.col  <- c("NA","NA","lightgray","NA","NA","NA","NA","NA")
+lc.col  <- c("NA","NA","NA","NA","NA","NA","NA","NA")
 lc.breaks <- c(0, x.lab+0.5)
   #replace x_pos as longitude
    x_pos <- as.numeric(table.comb$eve.lon.med.aff)   
@@ -495,7 +561,8 @@ lc.breaks <- c(0, x.lab+0.5)
 
   plot(lc.raster, col=lc.col, breaks=lc.breaks, legend=F, ylim=c(0.,60.),xlim=c(100,150),,add=T)
   par( usr=c(100,150,0,60), xpd=FALSE)  
-  plot(coastlines, lwd=0.8,xlim=c(100,150), col="black", add=T) 
+  plot(coastlines, lwd=1.0,xlim=c(100,150), col="black", add=T) 
+
   grid(lwd=1,col="black")
   axis(side = 2, at = seq(0,60,length.out=7),
        labels = c("0","10","20","30","40","50","60"), tck = -0.02)
@@ -505,57 +572,109 @@ lc.breaks <- c(0, x.lab+0.5)
        labels = c("","100","110","120","130","140","150"), tck = -0.02)
   mtext("Longitude" , side=1, line=2.5, cex=1.5)
   box() 
-   # add color bar
-   colorbar.plot(x=135.,y=3,adj.y=.5,adj.x=0.0, strip=seq(-1,1,0.1), strip.width=.02, strip.length=0.02*10,
-                horizontal=T,col=eff.col)
-   text(x=140,y=1.0,srt=0,"Effect Size",cex=1.0)
-   text(x=140,y=4.2,srt=0,"-1.0    -0.5    0     0.5     1.0 ",cex=.8) 
-   #add land sea mask
+  #add land sea mask
    #add event-base TC tracks
    t.blue=rgb(red=0.1, green=.2, blue=.8, alpha=.5,  maxColorValue = 1)
    t.red=rgb(red=0.8, green=.2, blue=.1, alpha=.5,  maxColorValue = 1)
    t.green=rgb(red=0.1, green=.8, blue=.1, alpha=.5,  maxColorValue = 1)
 
+
+
+
+#plot gray-track linees
+   for (ieve in 1:length(table.neutral$date.time) ) {
+      #subset track.data to event table 
+      eve.table  <-  subset (track.data, ((substr(track.data$YYYYMMDDHH,start=1,stop=4) == table.neutral$date.yr[ieve]) &
+                                          (track.data$CY == table.neutral$eve.id[ieve]) ))
+      eve.table  <- subset (eve.table, eve.table$VMAX >=45) 
+      eve.stp <- length(eve.table$VMAX)
+      eve.rad <- max(eve.table$RAD)
+      print(paste("TC max RAD:",eve.rad,", ","TC_stps:",eve.stp,sep=""))
+      # plot the tracks
+      lines( x=eve.table$LonEW, y=eve.table$LatNS, lty="solid",
+             col="lightgray",
+             lwd=ifelse( abs(table.neutral$eff.size.for[ieve])>0.4  ,0.5, 0.5))
+  }
+
+
+
+
+#plot color-track lines
    for (ieve in 1:length(table.comb$date.time) ) {
       #subset track.data to event table 
       eve.table  <-  subset (track.data, ((substr(track.data$YYYYMMDDHH,start=1,stop=4) == table.comb$date.yr[ieve]) &
                                           (track.data$CY == table.comb$eve.id[ieve]) ))
-      eve.table  <- subset (eve.table, eve.table$VMAX >=35) 
+      eve.table  <- subset (eve.table, eve.table$VMAX >=45) 
       eve.stp <- length(eve.table$VMAX)
       eve.rad <- max(eve.table$RAD)
       print(paste("TC max RAD:",eve.rad,", ","TC_stps:",eve.stp,sep=""))
       # plot the tracks
       lines( x=eve.table$LonEW, y=eve.table$LatNS, lty="solid",
              col=table.comb$col[ieve],
-             lwd=ifelse( abs(table.comb$eff.size.for[ieve])>0.4  ,0.25, 0.25))
-  } 
+             lwd=ifelse( abs(table.comb$eff.size.for[ieve])>0.4  ,1.0, 1.0))
+  }
+
+
+
+
+ 
 #add coastline
   par( usr=c(100,150,0,60), xpd=FALSE)  
-  plot(coastlines, lwd=0.8,xlim=c(100,150), col="black", add=T) 
+  plot(coastlines, lwd=0.5,xlim=c(100,150), col="black", add=T) 
  
   # add forest area that affected by TCs
 
-    eff.acc.10d.neg[eff.acc.10d.neg==0]<- 1
-    eff.acc.10d.pos[eff.acc.10d.pos==0]<- 1
+    eff.acc.10d.neg[eff.acc.10d.neg==0]<- 0
+    eff.acc.10d.pos[eff.acc.10d.pos==0]<- 0
+    eff.acc.10d.neu[eff.acc.10d.neu==0]<- 0
+    tot.a  <- 0.
+    lab.text <- c("NA","NA","NA")
     for (ix in 1:nx10d) {
       for (iy in 1:ny10d) {
           # add pie chart 
-            if (for.acc.10d[ix,iy] >= 1000) {
-                add.pie(z=c(eff.acc.10d.pos[ix,iy],eff.acc.10d.neg[ix,iy]),
-                        x=for.navlon.10d[ix,iy], y=for.navlat.10d[ix,iy], 
-                        col=c(t.green,t.red), radius=2.5, labels=NA)
+            if ( (eff.acc.10d.neu[ix,iy] > 0) & (for.acc.10d[ix,iy]/10000 > .1)) {
+     
+              print(paste("lon:",for.navlon.10d[ix,iy],"lat:",for.navlat.10d[ix,iy],sep=" "))
+              print(paste("pos:",eff.acc.10d.pos[ix,iy]/10000,"neu:",eff.acc.10d.neu[ix,iy]/10000,
+                            "neg:",eff.acc.10d.neg[ix,iy]/10000, sep=""))
+               tot.a <- eff.acc.10d.pos[ix,iy] + eff.acc.10d.neu[ix,iy] +eff.acc.10d.neg[ix,iy]
+               lab.text[1] <- paste(as.character(format( eff.acc.10d.pos[ix,iy]/tot.a*100, digits=0,nsmall=0)),"%",sep="")  
+               lab.text[2] <- format( eff.acc.10d.neu[ix,iy]/tot.a*100, digits=0,nsmall=0)
+               if (lab.text[2] < 1) {lab.text[2] <- c("")} 
+               else { lab.text[2] <- paste(lab.text[2],"%",sep="")}
+  
+               lab.text[3] <- paste(as.character(format( eff.acc.10d.neg[ix,iy]/tot.a*100, digits=0,nsmall=0)),"%",sep="")
+
+                add.pie(z=c(eff.acc.10d.pos[ix,iy], eff.acc.10d.neu[ix,iy], eff.acc.10d.neg[ix,iy]),init.angle=90,
+                        x=for.navlon.10d[ix,iy], y=for.navlat.10d[ix,iy],label.dist=1.2,cex=0.6,bg="red", 
+                        col=c("forestgreen","lightgray","orange2"), radius=2.5, label=NA)
                 area.txt <- round(for.acc.10d[ix,iy]/10000, digits=1) 
-                text(x=for.navlon.10d[ix,iy]+2.5, y=for.navlat.10d[ix,iy]-4.0,labels=paste(area.txt,"M",sep=""))
-             }  
+                #add information of percentage 
+                #boxed.labels(bg= "white",border=NA,x=for.navlon.10d[ix,iy]+2.2, y=for.navlat.10d[ix,iy]-4.0,
+                #             labels=paste(area.txt,"Mha",sep=""),cex=0.8,font=2)
+                #add information of total tc events
+                #boxed.labels(bg= "white",border=NA,x=for.navlon.10d[ix,iy]-2.5, y=for.navlat.10d[ix,iy]+4.0,
+                #        labels=paste("TC:",format(tc.occ.10d.avg[ix,iy],digits=1,nsmall=1),sep=""),cex=0.8,font=2)
+          }  
       } 
     }
 
     #add coastlines
 
 #  plot(coastlines,lwd=1.2, add=T) 
+   add.pie(z=c(33,34,33), init.angle=90,
+           x=109, y=56,cex=0.8,label.dist=1.4, 
+           col=c("forestgreen","lightgray","orange2"),
+           radius=2.5, labels=c("Positive","Neutral","Negtive"))
+ 
+ # add color bar
+   colorbar.plot(x=102.,y=50,adj.y=.5,adj.x=0.0, strip=seq(-1,1,0.1), strip.width=.02, strip.length=0.02*15,
+                horizontal=T,col=eff.col)
+   text(x=110,y=48.0,srt=0,"Effect Size",cex=1.0)
+   text(x=110,y=51.5,srt=0,"-1.0    -0.5    0     0.5     1.0 ",cex=.8) 
  
  
-   par(bty = "n")
+#   par(bty = "n")
    #add legend
    #plot(lc.raster, col=lc.col, breaks=lc.breaks, legend.only=T, horizontal=F,
    #     add=T, smallplot=c(0.93,0.96,0.2,0.9), legend.width=0.25, legend.shrick=0.5,
@@ -563,8 +682,7 @@ lc.breaks <- c(0, x.lab+0.5)
    #                   labels= txt.lab ,
    #                    las=2, cex.axis=0.8, mgp=c(5,0.5,0)),  
    #     legend.arg= list(text="Land cover type",las=3, side=2, font=2, line=0.2, cex=0.8) )
-#reset plot parameters
-par(par.def)
 if(go.pdf) {dev.off()}
 }
 #par(oma = c(0.5, 0.5, 0.5, 0.5))
+

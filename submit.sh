@@ -60,65 +60,49 @@ CONT=0
 #arg6="TRACK_DATA_2D"
 #
 
-for irun in {1..6}
+for irun in {7..9}
 
 do
 #combine based
 #case 1 
 if [ "${irun}" == "1" ]; then 
-   arg1="8"; arg2="80"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_2D"
+   arg1="8"; arg2="60"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_2D"
 fi
 #case 2
 if [ "${irun}" == "2" ]; then 
-   arg1="10"; arg2="160"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_3D"
+   arg1="10"; arg2="80"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_3D"
 fi
 #case 3
 if [ "${irun}" == "3" ]; then 
-   arg1="12"; arg2="240"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_4D"
+   arg1="12"; arg2="100"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_4D"
 fi
-#case 4
-if [ "${irun}" == "4" ]; then 
-   arg1="14"; arg2="320"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_5D"
-fi
-
 #wind based
-#case 5 
+#case 4 
+if [ "${irun}" == "4" ]; then 
+   arg1="8"; arg2="0"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_2D"
+fi
+#case 5
 if [ "${irun}" == "5" ]; then 
-   arg1="8"; arg2="30"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_2D"
+   arg1="10"; arg2="0"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_3D"
 fi
 #case 6
 if [ "${irun}" == "6" ]; then 
-   arg1="10"; arg2="30"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_3D"
-fi
-#case 7
-if [ "${irun}" == "7" ]; then 
-   arg1="12"; arg2="30"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_4D"
-fi
-#case 8
-if [ "${irun}" == "8" ]; then 
-   arg1="14"; arg2="30"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_5D"
+   arg1="12"; arg2="0"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_4D"
 fi
 
 #rainfall based
-#case 9 
+#case 7
+if [ "${irun}" == "7" ]; then 
+   arg1="0"; arg2="60"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_2D"
+fi
+#case 8
+if [ "${irun}" == "8" ]; then 
+   arg1="0"; arg2="80"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_3D"
+fi
+#case 9
 if [ "${irun}" == "9" ]; then 
-   arg1="6"; arg2="80"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_2D"
+   arg1="0"; arg2="100"; arg3="50"; arg4="0"; arg5="70"; arg6="TRACK_DATA_4D"
 fi
-#case 10
-if [ "${irun}" == "10" ]; then 
-   arg1="6"; arg2="160"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_3D"
-fi
-#case 11
-if [ "${irun}" == "11" ]; then 
-   arg1="6"; arg2="240"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_4D"
-fi
-#case 12
-if [ "${irun}" == "12" ]; then 
-   arg1="6"; arg2="320"; arg3="50"; arg4="0"; arg5="50"; arg6="TRACK_DATA_5D"
-fi
-
-
-
 
 
 #counter for the iteration or loop 

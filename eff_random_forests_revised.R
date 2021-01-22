@@ -1,83 +1,4 @@
-## FUNCTIONS
 
-#################################################################
-#**************************
-#return the rules of a tree
-#**************************
-getConds<-function(tree){
-  #store all conditions into a list
-  conds<-list()
-  #start by the terminal nodes and find previous conditions
-  id.leafs<-which(tree$status==-1)
-  j<-0
-  for(i in id.leafs){
-    j<-j+1
-    prevConds<-prevCond(tree,i)
-    conds[[j]]<-prevConds$cond
-    while(prevConds$id>1){
-      prevConds<-prevCond(tree,prevConds$id)
-      conds[[j]]<-paste(conds[[j]]," & ",prevConds$cond)
-      if(prevConds$id==1){
-        conds[[j]]<-paste(conds[[j]]," => ",tree$prediction[i])
-        break()
-      }
-    }
-    
-  }
-  
-  return(conds)
-}
-
-#**************************
-#find the previous conditions in the tree
-#**************************
-prevCond<-function(tree,i){
-  if(i %in% tree$right_daughter){
-    id<-which(tree$right_daughter==i)
-    cond<-paste(tree$split_var[id],">",tree$split_point[id])
-  }
-  if(i %in% tree$left_daughter){
-    id<-which(tree$left_daughter==i)
-    cond<-paste(tree$split_var[id],"<",tree$split_point[id])
-  }
-  
-  return(list(cond=cond,id=id))
-}
-
-#remove spaces in a word
-collapse<-function(x){
-  x<-sub(" ","_",x)
-  
-  return(x)
-}
-
-
-#####################################################################################
-to.dendrogram <- function(dfrep,rownum=1,height.increment=0.1){
-  
-  if(dfrep[rownum,'status'] == -1){
-    rval <- list()
-    
-    attr(rval,"members") <- 1
-    attr(rval,"height") <- 0.0
-    attr(rval,"label") <- dfrep[rownum,'prediction']
-    attr(rval,"leaf") <- TRUE
-    
-  }else{##note the change "to.dendrogram" and not "to.dendogram"
-    left <- to.dendrogram(dfrep,dfrep[rownum,'left daughter'],height.increment)
-    right <- to.dendrogram(dfrep,dfrep[rownum,'right daughter'],height.increment)
-    rval <- list(left,right)
-    
-    attr(rval,"members") <- attr(left,"members") + attr(right,"members")
-    attr(rval,"height") <- max(attr(left,"height"),attr(right,"height")) + height.increment
-    attr(rval,"leaf") <- FALSE
-    attr(rval,"edgetext") <- paste(dfrep[rownum,'split var'],"\n<",round(dfrep[rownum,'split point'], digits = 2),"=>", sep = " ")
-  }
-  
-  class(rval) <- "dendrogram"
-  
-  return(rval)
-}
 
 #####################################
 # Quality Check funtion 
@@ -86,34 +7,45 @@ to.dendrogram <- function(dfrep,rownum=1,height.increment=0.1){
 #QC2 measurement uncertainty on LAI  
 fun_table.qc <- function(wrk.table, qc1.set=0.5, qc2.set=0.2, area.set=1000) {
  
+      #print( paste("Total events:", length(wrk.table$eve.for.pix.aff),sep=""))
       #subset the datset with QC and QA score
       #Avariable area
       wrk.table <- subset(wrk.table, ((wrk.table$eve.for.pix.aff)> area.set)  )
+      all.eve <- length(wrk.table$eve.for.pix.aff)
+      print( paste("Total events:", all.eve,sep=""))
+ 
       #QC1 mean difference  on LAI #QC2 measurement uncertainty on LAI  
       #qc1.set <- 0.5
       #qc2.set <- 0.2
-      wrk.table <- subset(wrk.table, (abs(wrk.table$qc1.score)<=qc1.set &  abs(wrk.table$qc2.score)>=qc2.set ))
+      wrk.table <- subset(wrk.table, (abs(wrk.table$qc1.score)<=qc1.set) )
+      tmp.eve <- length(wrk.table$eve.for.pix.aff)
+      flag1.eve <- all.eve - length(wrk.table$eve.for.pix.aff)
+      print( paste("Flag-1 events (remove Big LAI difference):", flag1.eve ,sep=""))
+      
+      wrk.table <- subset(wrk.table, ( abs(wrk.table$qc2.score)>=qc2.set ))
+      flag2.eve <- tmp.eve - length(wrk.table$eve.for.pix.aff) 
+      print( paste("Flag-2 events (Noise > difference ):", flag2.eve,sep=""))
+
+
       return(wrk.table)
       } 
 ####################################
 
 #set qc/qa parameters
-qc1.set <- 0.5
-qc2.set <- 0.18
-area.set <- 100
+qc1.set <- 0.6
+qc2.set <- 0.2
+area.set <- 1000
 
 #get file-list 
-in.files <- list.files(path="./Rda_EA/", pattern="EA_*")
+in.files <- list.files(path="./Rda_60/", pattern="EA_*")
    
 table.all <- NA
 for (id in 1:length(in.files)  ) { 
 #for (id in 1:1) { 
-   load(paste("./Rda_EA/",in.files[id],sep=""))
+   load(paste("./Rda_60/",in.files[id],sep=""))
    table.comb$date.day <- substr(table.comb$date.time,start=7,stop=8)
    
-   # subset datataset (this is super critical!! we develop this QC flags)
-   table.comb <- fun_table.qc(wrk.table=table.comb, qc1.set=qc1.set, qc2.set=qc2.set, area.set=area.set)
-   # combine all table
+  # combine all table
    table.all <- rbind(table.comb,table.all) 
  
    #scatter.smooth(y=table.comb$eff.size.for, x=(table.comb$date.mon+ as.integer(table.comb$date.day)/30 ),
@@ -123,7 +55,11 @@ for (id in 1:length(in.files)  ) {
 
 # remove the NA cases
 table.all <- table.all[complete.cases(table.all), ]
+#table.all <- subset(table.all, table.all$eve.for.mws.aff>1.0)
 
+# subset datataset (this is super critical!! we develop this QC flags)
+table.all <- fun_table.qc(wrk.table=table.all, qc1.set=qc1.set, qc2.set=qc2.set, area.set=area.set)
+ 
 
 library("dplyr")
 library("randomForest")
@@ -141,49 +77,84 @@ table.all$group[table.all$eff.size.for <0] <- "Damage"
 table.all$group <- as.factor(table.all$group)
 
 #assign the  index to the TC event 
-table.all$enso <- NA
+table.all$oni.enso <- NA
+
 #assign the  index to the TC event 
 for (it in 1: length(table.all$group))  {
    # find the correct time step for all events 
-   table.all$enso[it] <- enso.table$Ocean_Nino_Index[which(enso.table$Year == table.all$date.yr[it]  
+   table.all$oni.enso[it] <- enso.table$Ocean_Nino_Index[which(enso.table$Year == table.all$date.yr[it]  
                                                          & enso.table$Mon == table.all$date.mon[it] ) ] 
 }
 
 
-mat1 <-matrix(c(1,1,2,3),2,2)
-layout(mat1, widths=c(2,2),height=c(2,2))
+#table.all$date.mon.day <- (as.numeric(table.all$date.day)/10 + as.numeric(table.all$date.mon))
+table.all$date.mon.day <-  as.numeric(table.all$date.mon)
 
 
 
-hist.breaks <- c(seq(-5,5.0,length=100))
-hist.col <- ifelse( hist.breaks < 0, "brown", "forestgreen") 
- 
-
-hist(table.all$eff.size.for, col=hist.col
-     ,breaks=hist.breaks, main="All events", xlim=c(-1,1) )
-hist(table.all$eff.size.for[ table.all$enso >= 0.5 ], col= hist.col,
-     ,breaks=hist.breaks, main="El Nino (positive phase events)",xlim=c(-1,1))
-hist(table.all$eff.size.for[ table.all$enso <= -0.5 ], col= hist.col,
-     breaks=hist.breaks, main="La Nina (negtive phase events)",xlim=c(-1,1))
 
 
-table.ana <- select(table.all , group, bef.for.lai.aff, bef.for.asw.aff, eve.lat.med.aff, eve.for.mws.aff, enso)
+#mat1 <-matrix(c(1,1,2,3),2,2)
+#layout(mat1, widths=c(2,2),height=c(2,2))
+
+#hist.breaks <- c(seq(-5,5.0,length=100))
+#hist.col <- ifelse( hist.breaks < 0, "orange2", "forestgreen") 
+
+#hist(table.all$eff.size.for, col=hist.col
+#     ,breaks=hist.breaks, main="All events", xlim=c(-1,1) )
+#hist(table.all$eff.size.for[ table.all$enso >= 0.5 ], col= hist.col,
+#     ,breaks=hist.breaks, main="El Nino (positive phase events)",xlim=c(-1,1))
+#hist(table.all$eff.size.for[ table.all$enso <= -0.5 ], col= hist.col,
+#     breaks=hist.breaks, main="La Nina (negtive phase events)",xlim=c(-1,1))
+
+
+table.all <- subset( table.all, table.all$eve.for.mws.aff >1)  
+
+
+eff_cex  <-  sqrt(table.all$eve.for.pix.aff/3.1416)/100
+table.all$eff.cex <- eff_cex
+
+
+ld.go <- T
+
+if (ld.go) {
+
+
+# prepare table for analysis
+
+#table.ana <- select(table.all , group, eve.for.acf.aff, eve.lat.med.aff, eve.intensity, bef.for.asw.aff, date.mon.day, oni.enso)
+
 
 # Calculate the size of each of the data sets:
-data_set_size <- floor(nrow(table.ana))
+#data_set_size <- floor(nrow(table.ana))
 # Mote Carlo sampling with n/2 of total data_set_size
 #data_set_size <- as.integer(data_set_size/2)
 #data_set_size = 131 
 
 
 
-ld.go <- T
-
-if (ld.go) {
 # subset table
 imp.table <- NA 
 
-for (i in 1:200) {
+for (i in 1:12) {
+
+# prepare table for analysis
+if (i==1) table.ana <- select(table.all , group, eve.for.acf.aff, eve.lat.med.aff, eve.intensity, bef.for.asw.aff, date.mon.day, oni.enso)
+if (i==2) table.ana <- select(table.all , group, eve.for.mws.aff, eve.lat.med.aff, eve.intensity, bef.for.asw.aff, date.mon.day, oni.enso)
+if (i==3) table.ana <- select(table.all , group, eve.for.acf.aff, eff.cex, eve.intensity, bef.for.asw.aff, date.mon.day, oni.enso)
+if (i==4) table.ana <- select(table.all , group, eve.for.mws.aff, eff.cex, eve.intensity, bef.for.asw.aff, date.mon.day, oni.enso)
+
+if (i==5) table.ana <- select(table.all , group, eve.for.acf.aff, eve.lat.med.aff, eve.intensity, bef.for.lai.aff, date.mon.day, oni.enso)
+if (i==6) table.ana <- select(table.all , group, eve.for.mws.aff, eve.lat.med.aff, eve.intensity, bef.for.lai.aff, date.mon.day, oni.enso)
+if (i==7) table.ana <- select(table.all , group, eve.for.acf.aff, eff.cex, eve.intensity, bef.for.lai.aff, date.mon.day, oni.enso)
+if (i==8) table.ana <- select(table.all , group, eve.for.mws.aff, eff.cex, eve.intensity, bef.for.lai.aff, date.mon.day, oni.enso)
+
+if (i==9) table.ana <- select(table.all , group, eve.for.acf.aff, eve.lat.med.aff, eve.intensity, bef.for.acf.aff, date.mon.day, oni.enso)
+if (i==10) table.ana <- select(table.all , group, eve.for.mws.aff, eve.lat.med.aff, eve.intensity, bef.for.acf.aff, date.mon.day, oni.enso)
+if (i==11) table.ana <- select(table.all , group, eve.for.acf.aff, eff.cex, eve.intensity, bef.for.acf.aff, date.mon.day, oni.enso)
+if (i==12) table.ana <- select(table.all , group, eve.for.mws.aff, eff.cex, eve.intensity, bef.for.acf.aff, date.mon.day, oni.enso)
+
+
 # Set random seed to make results reproducible:
 set.seed(17*i)
 # Generate a random sample of "data_set_size" indexes
@@ -197,7 +168,9 @@ training <- table.ana[indexes,]
 #Apply Classification with Random Forest:
 # In the randomForest Package this would mean that you make a classification (type = "classification"), ntree = 2000 means that 2000 prediction trees are grown
 
-rf_class = randomForest(group ~ ., data=training, ntree=200, mtry=2,norm.votes=FALSE,  importance=TRUE,proximity=TRUE, type="classification", na.action=na.omit)
+rf_class = randomForest(group ~ ., data=training, ntree=100, mtry=6 , maxnodes=100,
+                                    norm.votes=TRUE,  importance=TRUE,
+                                    proximity=TRUE, type="classification", na.action=na.omit)
 #
 # Set your workingdirectory for the output here
 #pdf(file='all_trees.pdf', paper = "a4r", width = 10) #Name of the PDF File. In this case it will be a PDF with 2000 pages
@@ -217,8 +190,6 @@ rf_class = randomForest(group ~ ., data=training, ntree=200, mtry=2,norm.votes=F
 #dev.new()
 #plot importance 
 #varImpPlot(rf_class)
-
-
 #export the importance from the model 
 
 tmp.imp.table <- as.data.frame(importance(rf_class)) 
@@ -227,23 +198,22 @@ tmp.imp.table$vars <- row.names(tmp.imp.table)
 # combine table 
 imp.table <- rbind(tmp.imp.table, imp.table, make.row.names=FALSE)
 
- 
-
 }
 
 
 # rm NA cases
 imp.table <- imp.table[complete.cases(imp.table), ]
-
 # set vars as factor 
 imp.table$vars <- as.factor(imp.table$vars)
 
 # adjust the orders 
-imp.table$vars <- factor(imp.table$vars , levels=c("eve.for.mws.aff","bef.for.lai.aff", "bef.for.asw.aff","enso","eve.lat.med.aff"))
+imp.table$vars <- factor(imp.table$vars , levels=c("eve.for.acf.aff","eve.lat.med.aff","bef.for.lai.aff","date.mon.day", "bef.for.acf.aff","oni.enso","eff.cex","eve.for.mws.aff", "eve.intensity","bef.for.asw.aff"))
+
+#adjust label size 
+par(cex.axis=0.7)
 
 boxplot( imp.table$MeanDecreaseAccuracy ~ imp.table$vars,
          medcol="red",col="lightblue", horizontal=TRUE)
-
 
 #import the package
 #library("randomForest")
@@ -275,7 +245,7 @@ boxplot( imp.table$MeanDecreaseAccuracy ~ imp.table$vars,
 
 } #ld_go
 
-dev.new()
+#dev.new()
 
 # performing regrssion trees analysis based on the random forest analysis (assign the importance variables) 
 #  
